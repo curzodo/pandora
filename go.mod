@@ -3,7 +3,7 @@ module github.com/curzodo/pandora
 go 1.19
 
 require (
-	github.com/curzodo/perlin v0.0.0-20230220224005-57554aec9e86
+	github.com/curzodo/perlin v0.1.1
 	github.com/df-mc/dragonfly v0.9.2
 )
 
