@@ -6,8 +6,7 @@ import (
     "github.com/df-mc/dragonfly/server/block"
     "github.com/df-mc/dragonfly/server/world"
     "github.com/df-mc/dragonfly/server/world/chunk"
-    "math"
-    "math/rand"
+    // "math"
 )
 
 func main() {
@@ -35,45 +34,36 @@ func NewGenerator(seed int64) world.Generator {
     return Generator { perlin.NewGenerator(seed) }
 }
 
+var grass = world.BlockRuntimeID(block.Grass{})
+var stone = world.BlockRuntimeID(block.Stone{})
+var water = world.BlockRuntimeID(block.Water{
+    Still: true,
+    Depth: 1,
+    Falling: true,
+})
+
 func (g Generator) GenerateChunk(pos world.ChunkPos, chunk *chunk.Chunk) {
-    // Generate top layer
     for x := 0; x < 16; x++ {
         for z := 0; z < 16; z++ {
-            xsign := int(math.Copysign(float64(x), float64(pos[0])))
-            zsign := int(math.Copysign(float64(z), float64(pos[1])))
-            worldx := (float64(xsign + 15 * int(pos[0])) + 0.01)/20
-            worldz := (float64(zsign + 15 * int(pos[1])) + 0.01)/20
+            worldx := (float64(x + 15 * int(pos[0])) + 0.01) + 10000
+            worldz := (float64(z + 15 * int(pos[1])) + 0.01) + 10000
+            
+            spread := 500.0
+            amplitude := 20.0
+            octaves := 8
+            persistence := 1.0
+            lacunarity := 2.0
 
-            y := (g.Noise2D(worldx, worldz) * 3) + 2
-            b := world.BlockRuntimeID(block.Grass{})
-
-            if y < 0 { 
-                b2 := world.BlockRuntimeID(block.Water{
-                    Still: true,
-                    Depth: 1,
-                    Falling: true,
-                }) 
-
-                if rand.Intn(5) == 0 {
-                    chunk.SetBlock(uint8(x), int16(y+1), uint8(z), 0, b2)
-                    continue
-                }
-
-                if chunk.Block(uint8(x+1), int16(y+1), uint8(z), 0) == b2 { 
-                    chunk.SetBlock(uint8(x), int16(y+1), uint8(z), 0, b2)
-                }
-                if chunk.Block(uint8(x-1), int16(y+1), uint8(z), 0) == b2 { 
-                    chunk.SetBlock(uint8(x), int16(y+1), uint8(z), 0, b2)
-                }
-                if chunk.Block(uint8(x), int16(y+1), uint8(z+1), 0) == b2 { 
-                    chunk.SetBlock(uint8(x), int16(y+1), uint8(z), 0, b2)
-                }
-                if chunk.Block(uint8(x), int16(y+1), uint8(z-1), 0) == b2 { 
-                    chunk.SetBlock(uint8(x), int16(y+1), uint8(z), 0, b2)
-                }
+            var noise float64
+            for i := 0; i < octaves; i++ {
+                noise += amplitude * (g.Noise2D(worldx/spread, worldz/spread) + 1)
+                amplitude *= persistence
+                spread *= 1/lacunarity
             }
 
-            chunk.SetBlock(uint8(x), int16(y), uint8(z), 0, b)
+            chunk.SetBlock(uint8(x), int16(noise)-1, uint8(z), 0, stone)
+            chunk.SetBlock(uint8(x), int16(noise), uint8(z), 0, stone)
+            chunk.SetBlock(uint8(x), int16(noise)+1, uint8(z), 0, grass)
         }
     }
 }
